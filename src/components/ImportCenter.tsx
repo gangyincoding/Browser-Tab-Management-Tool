@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { ImportResult } from "../types/tab";
+import StatePanel from "./StatePanel";
+import type { ImportFeedback } from "../utils/importFeedback";
+import { buildImportErrorFeedback, buildImportFeedback } from "../utils/importFeedback";
 
 interface ImportCenterProps {
   onImportOneTab: (text: string) => Promise<ImportResult>;
@@ -7,17 +10,19 @@ interface ImportCenterProps {
   onImportChromeEdge: (file: File) => Promise<ImportResult>;
 }
 
-interface Feedback {
-  kind: "success" | "error";
-  message: string;
-}
+type BusySource = "onetab" | "bookmark" | "chrome_edge" | null;
 
-function buildFeedbackMessage(result: ImportResult): Feedback {
-  const duplicateCount = result.items.filter((item) => item.isDuplicate).length;
-  return {
-    kind: "success",
-    message: `导入完成：已解析 ${result.meta.parsed}/${result.meta.total}，无效 ${result.meta.invalid}，重复 ${duplicateCount}。`
-  };
+function getBusyMessage(source: BusySource): string {
+  if (source === "onetab") {
+    return "正在解析 OneTab 文本，请稍候...";
+  }
+  if (source === "bookmark") {
+    return "正在解析书签 HTML，请稍候...";
+  }
+  if (source === "chrome_edge") {
+    return "正在解析 Chrome/Edge 文件，请稍候...";
+  }
+  return "";
 }
 
 export default function ImportCenter({
@@ -26,42 +31,51 @@ export default function ImportCenter({
   onImportChromeEdge
 }: ImportCenterProps): JSX.Element {
   const [oneTabText, setOneTabText] = useState("");
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<ImportFeedback | null>(null);
+  const [busySource, setBusySource] = useState<BusySource>(null);
+  const busy = busySource !== null;
 
   const handleOneTabImport = async (): Promise<void> => {
     if (!oneTabText.trim()) {
-      setFeedback({ kind: "error", message: "OneTab 文本不能为空。" });
+      setFeedback({ kind: "warning", message: "OneTab 文本不能为空。" });
       return;
     }
-    setBusy(true);
+    setBusySource("onetab");
+    setFeedback(null);
+
     try {
       const result = await onImportOneTab(oneTabText);
-      setFeedback(buildFeedbackMessage(result));
-      setOneTabText("");
-    } catch {
-      setFeedback({ kind: "error", message: "OneTab 文本导入失败。" });
+      const nextFeedback = buildImportFeedback(result);
+      setFeedback(nextFeedback);
+      if (nextFeedback.kind === "success") {
+        setOneTabText("");
+      }
+    } catch (error) {
+      setFeedback(buildImportErrorFeedback("OneTab 文本", error));
     } finally {
-      setBusy(false);
+      setBusySource(null);
     }
   };
 
   const handleFileImport = async (
     file: File | undefined,
-    handler: (file: File) => Promise<ImportResult>,
-    failMessage: string
+    sourceLabel: string,
+    source: BusySource,
+    handler: (file: File) => Promise<ImportResult>
   ): Promise<void> => {
     if (!file) {
       return;
     }
-    setBusy(true);
+    setBusySource(source);
+    setFeedback(null);
+
     try {
       const result = await handler(file);
-      setFeedback(buildFeedbackMessage(result));
-    } catch {
-      setFeedback({ kind: "error", message: failMessage });
+      setFeedback(buildImportFeedback(result));
+    } catch (error) {
+      setFeedback(buildImportErrorFeedback(sourceLabel, error));
     } finally {
-      setBusy(false);
+      setBusySource(null);
     }
   };
 
@@ -72,19 +86,19 @@ export default function ImportCenter({
         <p className="text-sm text-slate-600">支持来源：OneTab 文本、书签 HTML、Chrome/Edge 文件。</p>
       </div>
 
-      {feedback ? (
-        <div
-          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-            feedback.kind === "success"
-              ? "border-moss/40 bg-moss/10 text-green-900"
-              : "border-ember/40 bg-ember/10 text-orange-900"
-          }`}
-        >
-          {feedback.message}
-        </div>
-      ) : null}
+      <div className="mb-4 space-y-2">
+        {busy ? <StatePanel title="导入处理中" description={getBusyMessage(busySource)} variant="loading" compact /> : null}
+        {feedback ? (
+          <StatePanel
+            title={feedback.kind === "success" ? "导入结果" : feedback.kind === "warning" ? "解析提示" : "导入失败"}
+            description={feedback.message}
+            variant={feedback.kind === "success" ? "info" : feedback.kind}
+            compact
+          />
+        ) : null}
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3" aria-busy={busy}>
         <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">OneTab 文本</h3>
           <textarea
@@ -92,13 +106,14 @@ export default function ImportCenter({
             onChange={(event) => setOneTabText(event.target.value)}
             rows={7}
             placeholder="粘贴 OneTab 导出的文本..."
-            className="mt-3 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm outline-none ring-0 transition focus:border-tide"
+            disabled={busy}
+            className="mt-3 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm outline-none ring-0 transition focus:border-tide disabled:cursor-not-allowed disabled:bg-slate-100"
           />
           <button
             type="button"
             onClick={handleOneTabImport}
             disabled={busy}
-            className="mt-3 w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="mt-3 w-full rounded-lg bg-ink px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             导入 OneTab
           </button>
@@ -110,10 +125,11 @@ export default function ImportCenter({
           <input
             type="file"
             accept=".html,.htm"
-            className="mt-3 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-tide file:px-3 file:py-2 file:text-white hover:file:bg-sky-700"
+            disabled={busy}
+            className="mt-3 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-tide file:px-3 file:py-2 file:text-white hover:file:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             onChange={async (event) => {
               const [file] = event.target.files ?? [];
-              await handleFileImport(file, onImportBookmarkHtml, "书签 HTML 导入失败。");
+              await handleFileImport(file, "书签 HTML", "bookmark", onImportBookmarkHtml);
               event.currentTarget.value = "";
             }}
           />
@@ -130,10 +146,11 @@ export default function ImportCenter({
           <input
             type="file"
             accept=".json,.html,.htm,.txt"
-            className="mt-3 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-ember file:px-3 file:py-2 file:text-white hover:file:bg-orange-600"
+            disabled={busy}
+            className="mt-3 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-ember file:px-3 file:py-2 file:text-white hover:file:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
             onChange={async (event) => {
               const [file] = event.target.files ?? [];
-              await handleFileImport(file, onImportChromeEdge, "Chrome/Edge 文件导入失败。");
+              await handleFileImport(file, "Chrome/Edge 文件", "chrome_edge", onImportChromeEdge);
               event.currentTarget.value = "";
             }}
           />

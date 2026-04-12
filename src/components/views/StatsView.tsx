@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { TabRecord } from "../../types/tab";
 import { getSourceLabel } from "../../utils/display";
+import StatePanel from "../StatePanel";
 
 interface StatsViewProps {
   tabs: TabRecord[];
@@ -33,8 +34,8 @@ export default function StatsView({ tabs }: StatsViewProps): JSX.Element {
 
   if (!tabs.length) {
     return (
-      <section className="rounded-2xl bg-white/90 p-6 text-center text-slate-600 shadow-card backdrop-blur">
-        暂无数据，请先导入标签后生成统计图。
+      <section className="rounded-2xl bg-white/90 p-5 shadow-card backdrop-blur">
+        <StatePanel title="暂无统计数据" description="导入标签后将自动生成分类分布与来源分布图。" variant="empty" />
       </section>
     );
   }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DuplicateFilter, TabRecord, UpdateTabPayload } from "../../types/tab";
 import { getSourceLabel } from "../../utils/display";
+import StatePanel from "../StatePanel";
 
 interface ListViewProps {
   tabs: TabRecord[];
@@ -183,6 +184,12 @@ export default function ListView({
     setSelectedIds([]);
   };
 
+  const handleResetFilters = (): void => {
+    setSearchValue("");
+    setCategoryFilter("all");
+    setDuplicateFilter("all");
+  };
+
   return (
     <section className="rounded-2xl bg-white/90 p-5 shadow-card backdrop-blur">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -257,89 +264,118 @@ export default function ListView({
             清空选择
           </button>
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-4">
+          <StatePanel
+            title="未选中标签"
+            description="勾选标签后可进行批量改分类或批量删除。"
+            variant="info"
+            compact
+          />
+        </div>
+      )}
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-2">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
-              <th className="px-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  onChange={handleToggleSelectAllVisible}
-                  aria-label="全选当前筛选结果"
-                />
-              </th>
-              <th className="px-3 py-2">标题</th>
-              <th className="px-3 py-2">域名</th>
-              <th className="px-3 py-2">分类</th>
-              <th className="px-3 py-2">来源</th>
-              <th className="px-3 py-2">标签 / 备注</th>
-              <th className="px-3 py-2">状态</th>
-              <th className="px-3 py-2">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleTabs.map((tab) => (
-              <tr key={tab.id} className="rounded-lg bg-slate-50 text-sm text-slate-700">
-                <td className="px-3 py-3">
+      {visibleTabs.length ? (
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-y-2">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-2">
                   <input
                     type="checkbox"
-                    checked={selectedIdSet.has(tab.id)}
-                    onChange={() => handleToggleSelect(tab.id)}
-                    aria-label={`选择标签 ${tab.title}`}
+                    checked={allVisibleSelected}
+                    onChange={handleToggleSelectAllVisible}
+                    aria-label="全选当前筛选结果"
                   />
-                </td>
-                <td className="max-w-[260px] px-3 py-3">
-                  <a
-                    href={tab.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-ink hover:text-tide hover:underline"
-                    title={tab.url}
-                  >
-                    {tab.title}
-                  </a>
-                  <p className="mt-1 truncate text-xs text-slate-500">{tab.url}</p>
-                </td>
-                <td className="px-3 py-3">{tab.domain}</td>
-                <td className="px-3 py-3">{tab.category}</td>
-                <td className="px-3 py-3">{getSourceLabel(tab.source)}</td>
-                <td className="max-w-[220px] px-3 py-3">
-                  {tab.tags.length ? <p className="truncate text-xs text-slate-600">#{tab.tags.join(" #")}</p> : null}
-                  {tab.note ? <p className="truncate text-xs text-slate-500">{tab.note}</p> : <p className="text-xs text-slate-400">无备注</p>}
-                </td>
-                <td className="px-3 py-3">
-                  {tab.isDuplicate ? (
-                    <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">重复</span>
-                  ) : (
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">唯一</span>
-                  )}
-                </td>
-                <td className="px-3 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleStartEdit(tab)}
-                      className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 transition hover:border-tide hover:text-tide"
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(tab)}
-                      className="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
-                    >
-                      删除
-                    </button>
-                  </div>
-                </td>
+                </th>
+                <th className="px-3 py-2">标题</th>
+                <th className="px-3 py-2">域名</th>
+                <th className="px-3 py-2">分类</th>
+                <th className="px-3 py-2">来源</th>
+                <th className="px-3 py-2">标签 / 备注</th>
+                <th className="px-3 py-2">状态</th>
+                <th className="px-3 py-2">操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {visibleTabs.map((tab) => (
+                <tr key={tab.id} className="rounded-lg bg-slate-50 text-sm text-slate-700">
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIdSet.has(tab.id)}
+                      onChange={() => handleToggleSelect(tab.id)}
+                      aria-label={`选择标签 ${tab.title}`}
+                    />
+                  </td>
+                  <td className="max-w-[260px] px-3 py-3">
+                    <a
+                      href={tab.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-ink hover:text-tide hover:underline"
+                      title={tab.url}
+                    >
+                      {tab.title}
+                    </a>
+                    <p className="mt-1 truncate text-xs text-slate-500">{tab.url}</p>
+                  </td>
+                  <td className="px-3 py-3">{tab.domain}</td>
+                  <td className="px-3 py-3">{tab.category}</td>
+                  <td className="px-3 py-3">{getSourceLabel(tab.source)}</td>
+                  <td className="max-w-[220px] px-3 py-3">
+                    {tab.tags.length ? <p className="truncate text-xs text-slate-600">#{tab.tags.join(" #")}</p> : null}
+                    {tab.note ? <p className="truncate text-xs text-slate-500">{tab.note}</p> : <p className="text-xs text-slate-400">无备注</p>}
+                  </td>
+                  <td className="px-3 py-3">
+                    {tab.isDuplicate ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">重复</span>
+                    ) : (
+                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">唯一</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(tab)}
+                        className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 transition hover:border-tide hover:text-tide"
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(tab)}
+                        className="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="mt-4">
+          {tabs.length ? (
+            <StatePanel
+              title="没有匹配结果"
+              description="当前筛选条件下没有标签，建议清空筛选后重试。"
+              variant="empty"
+              actionLabel="清空筛选"
+              onAction={handleResetFilters}
+            />
+          ) : (
+            <StatePanel
+              title="暂无标签数据"
+              description="请先在导入中心导入 OneTab 文本、书签 HTML 或 Chrome/Edge 文件。"
+              variant="empty"
+            />
+          )}
+        </div>
+      )}
 
       {editingTab ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-4">

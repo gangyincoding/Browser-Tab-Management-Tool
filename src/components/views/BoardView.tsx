@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { TabRecord } from "../../types/tab";
+import StatePanel from "../StatePanel";
 
 interface BoardViewProps {
   tabs: TabRecord[];
@@ -26,8 +27,8 @@ export default function BoardView({ tabs }: BoardViewProps): JSX.Element {
 
   if (!grouped.length) {
     return (
-      <section className="rounded-2xl bg-white/90 p-6 text-center text-slate-600 shadow-card backdrop-blur">
-        暂无数据，请先导入标签后查看分类看板。
+      <section className="rounded-2xl bg-white/90 p-5 shadow-card backdrop-blur">
+        <StatePanel title="暂无看板数据" description="请先导入标签，或检查去重后是否仍有可展示内容。" variant="empty" />
       </section>
     );
   }
