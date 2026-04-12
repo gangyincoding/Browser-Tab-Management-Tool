@@ -1,4 +1,4 @@
-type StateVariant = "empty" | "info" | "warning" | "error" | "loading";
+type StateVariant = "empty" | "info" | "success" | "warning" | "error" | "loading";
 
 interface StatePanelProps {
   title: string;
@@ -11,6 +11,8 @@ interface StatePanelProps {
 
 function variantClassName(variant: StateVariant): string {
   switch (variant) {
+    case "success":
+      return "border-emerald-200 bg-emerald-50 text-emerald-900";
     case "warning":
       return "border-amber-200 bg-amber-50 text-amber-900";
     case "error":

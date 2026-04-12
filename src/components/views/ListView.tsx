@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DuplicateFilter, TabRecord, UpdateTabPayload } from "../../types/tab";
 import { getSourceLabel } from "../../utils/display";
+import { getUniqueVisibleTabIds } from "../../utils/selection";
 import StatePanel from "../StatePanel";
 
 interface ListViewProps {
@@ -31,6 +32,10 @@ export default function ListView({
   onBulkUpdateCategory,
   onBulkDeleteTabs
 }: ListViewProps): JSX.Element {
+  const [operationFeedback, setOperationFeedback] = useState<{
+    kind: "success" | "warning";
+    message: string;
+  } | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [duplicateFilter, setDuplicateFilter] = useState<DuplicateFilter>("all");
@@ -148,6 +153,7 @@ export default function ListView({
   };
 
   const handleToggleSelectAllVisible = (): void => {
+    setOperationFeedback(null);
     setSelectedIds((previous) => {
       const previousSet = new Set(previous);
       if (allVisibleSelected) {
@@ -161,11 +167,31 @@ export default function ListView({
     });
   };
 
+  const handleSelectUniqueVisible = (): void => {
+    const uniqueIds = getUniqueVisibleTabIds(visibleTabs);
+    if (!uniqueIds.length) {
+      setOperationFeedback({
+        kind: "warning",
+        message: "当前筛选结果中没有可选的唯一标签。"
+      });
+      return;
+    }
+    setSelectedIds(uniqueIds);
+    setOperationFeedback({
+      kind: "success",
+      message: `已选中当前筛选结果中的 ${uniqueIds.length} 个唯一标签。`
+    });
+  };
+
   const handleBulkUpdateCategory = (): void => {
     if (!selectedIds.length) {
       return;
     }
     onBulkUpdateCategory(selectedIds, bulkCategory || "未分类");
+    setOperationFeedback({
+      kind: "success",
+      message: `批量改分类完成：已更新 ${selectedIds.length} 个标签到「${bulkCategory || "未分类"}」。`
+    });
     setSelectedIds([]);
   };
 
@@ -178,6 +204,10 @@ export default function ListView({
       return;
     }
     onBulkDeleteTabs(selectedIds);
+    setOperationFeedback({
+      kind: "success",
+      message: `批量删除完成：已删除 ${selectedIds.length} 个标签。`
+    });
     if (editingTabId && selectedIdSet.has(editingTabId)) {
       handleCancelEdit();
     }
@@ -188,6 +218,7 @@ export default function ListView({
     setSearchValue("");
     setCategoryFilter("all");
     setDuplicateFilter("all");
+    setOperationFeedback(null);
   };
 
   return (
@@ -228,9 +259,27 @@ export default function ListView({
         </div>
       </div>
 
+      {operationFeedback ? (
+        <div className="mt-4">
+          <StatePanel
+            title={operationFeedback.kind === "success" ? "批量操作结果" : "批量操作提示"}
+            description={operationFeedback.message}
+            variant={operationFeedback.kind}
+            compact
+          />
+        </div>
+      ) : null}
+
       {selectedIds.length ? (
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <span className="text-sm text-slate-700">已选中 {selectedIds.length} 项</span>
+          <button
+            type="button"
+            onClick={handleSelectUniqueVisible}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-tide hover:text-tide"
+          >
+            仅选唯一项
+          </button>
           <select
             value={bulkCategory}
             onChange={(event) => setBulkCategory(event.target.value)}
@@ -268,8 +317,10 @@ export default function ListView({
         <div className="mt-4">
           <StatePanel
             title="未选中标签"
-            description="勾选标签后可进行批量改分类或批量删除。"
+            description="勾选标签后可进行批量改分类或批量删除。也可直接选择当前筛选结果中的唯一标签。"
             variant="info"
+            actionLabel="选择当前唯一项"
+            onAction={handleSelectUniqueVisible}
             compact
           />
         </div>
