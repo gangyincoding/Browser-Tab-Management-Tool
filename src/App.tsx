@@ -5,6 +5,7 @@ import BoardView from "./components/views/BoardView";
 import ListView from "./components/views/ListView";
 import StatsView from "./components/views/StatsView";
 import { useTabStore } from "./store/useTabStore";
+import { downloadTabsAsJson } from "./utils/export";
 
 type ViewMode = "list" | "board" | "stats";
 
@@ -65,7 +66,12 @@ export default function App(): JSX.Element {
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
       <div className="space-y-6">
-        <DashboardHeader tabs={tabs} lastImportMeta={lastImportMeta} onClearAll={clearAll} />
+        <DashboardHeader
+          tabs={tabs}
+          lastImportMeta={lastImportMeta}
+          onExportJson={() => downloadTabsAsJson(tabs)}
+          onClearAll={clearAll}
+        />
 
         <ImportCenter
           onImportOneTab={(text) => importFromText("onetab", text)}

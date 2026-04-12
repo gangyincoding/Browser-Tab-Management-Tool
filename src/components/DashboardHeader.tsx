@@ -4,6 +4,7 @@ import { getSourceLabel } from "../utils/display";
 interface DashboardHeaderProps {
   tabs: TabRecord[];
   lastImportMeta: ImportMeta | null;
+  onExportJson: () => void;
   onClearAll: () => void;
 }
 
@@ -14,7 +15,7 @@ function formatImportMeta(meta: ImportMeta | null): string {
   return `${getSourceLabel(meta.source)}：已解析 ${meta.parsed}/${meta.total}，无效 ${meta.invalid}`;
 }
 
-export default function DashboardHeader({ tabs, lastImportMeta, onClearAll }: DashboardHeaderProps): JSX.Element {
+export default function DashboardHeader({ tabs, lastImportMeta, onExportJson, onClearAll }: DashboardHeaderProps): JSX.Element {
   const duplicateCount = tabs.filter((tab) => tab.isDuplicate).length;
   const uniqueCount = tabs.length - duplicateCount;
   const categoryCount = new Set(tabs.map((tab) => tab.category)).size;
@@ -33,13 +34,24 @@ export default function DashboardHeader({ tabs, lastImportMeta, onClearAll }: Da
           <h1 className="text-2xl font-bold text-ink">浏览器标签可视化管理工具</h1>
           <p className="mt-1 text-sm text-slate-600">{formatImportMeta(lastImportMeta)}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClearAll}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-ember hover:text-ember"
-        >
-          清空全部
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onExportJson}
+            disabled={!tabs.length}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-tide hover:text-tide disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            导出 JSON
+          </button>
+          <button
+            type="button"
+            onClick={onClearAll}
+            disabled={!tabs.length}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            清空全部
+          </button>
+        </div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
