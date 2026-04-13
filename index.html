@@ -135,6 +135,34 @@
       background: #fff;
     }
 
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      background: #fff;
+      color: #334155;
+      cursor: pointer;
+    }
+
+    .tab-btn:hover {
+      border-color: #99f6e4;
+      background: #f0fdfa;
+    }
+
+    .tab-btn.active {
+      background: #0f766e;
+      border-color: #0f766e;
+      color: #fff;
+    }
+
     .tip {
       font-size: 12px;
       color: var(--warn);
@@ -269,6 +297,7 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
           <option value="desc">降序</option>
         </select>
       </div>
+      <div id="categoryTabs" class="tabs"></div>
     </section>
 
     <section id="groups" class="groups"></section>
@@ -305,6 +334,7 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
         search: "",
         sortField: "title",
         sortOrder: "asc",
+        activeCategory: "全部",
         collapsed: new Set()
       };
 
@@ -318,6 +348,7 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
         searchInput: document.getElementById("searchInput"),
         sortField: document.getElementById("sortField"),
         sortOrder: document.getElementById("sortOrder"),
+        categoryTabs: document.getElementById("categoryTabs"),
         groups: document.getElementById("groups")
       };
 
@@ -571,10 +602,14 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
 
       function getFilteredItems() {
         const keyword = state.search.trim().toLowerCase();
-        if (!keyword) {
-          return state.items.slice();
+        let baseItems = state.items.slice();
+        if (state.activeCategory !== "全部") {
+          baseItems = baseItems.filter((item) => item.category === state.activeCategory);
         }
-        return state.items.filter((item) => {
+        if (!keyword) {
+          return baseItems;
+        }
+        return baseItems.filter((item) => {
           const hay = (item.title + " " + item.url + " " + item.domain).toLowerCase();
           return hay.includes(keyword);
         });
@@ -589,6 +624,46 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
       function renderTip() {
         const msg = "解析完成：有效 " + state.stats.valid + "，无效 " + state.stats.invalid + "，去重 " + state.stats.duplicates + "。";
         els.parseTip.textContent = msg;
+      }
+
+      function renderTabs() {
+        if (!state.items.length) {
+          els.categoryTabs.innerHTML = "";
+          return;
+        }
+
+        const countMap = state.items.reduce((acc, item) => {
+          acc[item.category] = (acc[item.category] || 0) + 1;
+          return acc;
+        }, {});
+
+        const categories = Object.keys(countMap).sort((a, b) => a.localeCompare(b, "zh-CN"));
+        const tabs = [{ name: "全部", count: state.items.length }]
+          .concat(categories.map((name) => ({ name, count: countMap[name] })));
+
+        let html = "";
+        for (let i = 0; i < tabs.length; i += 1) {
+          const tab = tabs[i];
+          const activeClass = tab.name === state.activeCategory ? " active" : "";
+          html += '<button type="button" class="tab-btn' + activeClass + '" data-tab="' + escapeHtml(tab.name) + '">';
+          html += escapeHtml(tab.name) + " (" + tab.count + ")";
+          html += "</button>";
+        }
+
+        els.categoryTabs.innerHTML = html;
+
+        const tabButtons = els.categoryTabs.querySelectorAll(".tab-btn");
+        for (let i = 0; i < tabButtons.length; i += 1) {
+          tabButtons[i].addEventListener("click", function (event) {
+            const tab = event.currentTarget.getAttribute("data-tab");
+            if (!tab || tab === state.activeCategory) {
+              return;
+            }
+            state.activeCategory = tab;
+            renderTabs();
+            renderGroups();
+          });
+        }
       }
 
       function renderGroups() {
@@ -660,10 +735,12 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
           duplicates: deduped.duplicates,
           categories: categorySize
         };
+        state.activeCategory = "全部";
         state.collapsed = new Set();
 
         renderStats();
         renderTip();
+        renderTabs();
         renderGroups();
       }
 
@@ -692,6 +769,7 @@ https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
         runPipeline();
       } else {
         renderStats();
+        renderTabs();
         renderGroups();
       }
     })();
