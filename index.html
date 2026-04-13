@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>标签可视化管理（单文件版）</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --brand: #0f766e;
+      --brand-soft: #ccfbf1;
+      --warn: #b45309;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 20px 16px 28px;
+    }
+
+    .header {
+      margin-bottom: 14px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .input-area textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      outline: none;
+    }
+
+    .input-area textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+    }
+
+    .btn {
+      margin-top: 10px;
+      border: 0;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #0d9488;
+    }
+
+    .stats {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .stat .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat .value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1.4fr 0.8fr 0.8fr;
+      align-items: center;
+    }
+
+    .controls input,
+    .controls select {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .tip {
+      font-size: 12px;
+      color: var(--warn);
+      margin-top: 8px;
+      min-height: 16px;
+    }
+
+    .groups {
+      display: grid;
+      gap: 10px;
+    }
+
+    .group {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      background: linear-gradient(90deg, var(--brand-soft), #f0fdfa);
+      cursor: pointer;
+      text-align: left;
+      color: #134e4a;
+      font-weight: 600;
+    }
+
+    .group-header .count {
+      color: #0f766e;
+      font-size: 12px;
+      border: 1px solid rgba(15, 118, 110, 0.25);
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #fff;
+    }
+
+    .group-list {
+      margin: 0;
+      padding: 10px 12px 12px 28px;
+    }
+
+    .group-list li {
+      margin: 0 0 8px;
+      line-height: 1.45;
+    }
+
+    .group-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-list a {
+      color: #0f172a;
+      text-decoration: none;
+    }
+
+    .group-list a:hover {
+      text-decoration: underline;
+    }
+
+    .domain {
+      display: inline-block;
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="header">
+      <h1>浏览器标签可视化管理（单文件 HTML）</h1>
+      <p>粘贴“标题 + URL”混合文本后，系统会自动解析、去重、分类并分组展示。</p>
+    </section>
+
+    <section class="card input-area">
+      <textarea id="inputText" placeholder="示例：
+GitHub https://github.com/
+https://www.youtube.com/watch?v=abc123&utm_source=test
+MDN 文档
+https://developer.mozilla.org/zh-CN/docs/Web/JavaScript"></textarea>
+      <button id="parseBtn" class="btn" type="button">解析并生成</button>
+      <div id="parseTip" class="tip"></div>
+    </section>
+
+    <section class="card">
+      <div class="stats">
+        <div class="stat">
+          <div class="label">总行数（非空）</div>
+          <div id="totalCount" class="value">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">去重后条目</div>
+          <div id="uniqueCount" class="value">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">分类数量</div>
+          <div id="categoryCount" class="value">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="controls">
+        <input id="searchInput" type="text" placeholder="搜索：标题 / URL / 域名">
+        <select id="sortField">
+          <option value="title">按标题排序</option>
+          <option value="domain">按域名排序</option>
+        </select>
+        <select id="sortOrder">
+          <option value="asc">升序</option>
+          <option value="desc">降序</option>
+        </select>
+      </div>
+    </section>
+
+    <section id="groups" class="groups"></section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const DOMAIN_RULES = [
+        { category: "文档", patterns: ["docs.*", "developer.mozilla.org", "readthedocs.io"] },
+        { category: "开发", patterns: ["github.com", "gitlab.com", "stackoverflow.com", "npmjs.com"] },
+        { category: "视频", patterns: ["youtube.com", "bilibili.com", "vimeo.com"] },
+        { category: "资讯", patterns: ["news.ycombinator.com", "medium.com", "36kr.com"] },
+        { category: "学习", patterns: ["coursera.org", "udemy.com", "edx.org"] }
+      ];
+
+      const KEYWORD_RULES = [
+        { category: "文档", keywords: ["docs", "documentation", "文档", "api", "reference"] },
+        { category: "开发", keywords: ["github", "gitlab", "stack overflow", "programming", "code", "开发"] },
+        { category: "视频", keywords: ["youtube", "bilibili", "video", "视频"] },
+        { category: "学习", keywords: ["course", "tutorial", "learn", "学习", "教程"] },
+        { category: "资讯", keywords: ["news", "blog", "article", "资讯", "新闻"] }
+      ];
+
+      const TRACKING_PARAM_SET = new Set([
+        "spm", "from", "source", "ref", "fbclid", "gclid", "igshid", "mc_cid", "mc_eid", "yclid"
+      ]);
+
+      const state = {
+        items: [],
+        stats: { total: 0, valid: 0, invalid: 0, duplicates: 0, categories: 0 },
+        search: "",
+        sortField: "title",
+        sortOrder: "asc",
+        collapsed: new Set()
+      };
+
+      const els = {
+        inputText: document.getElementById("inputText"),
+        parseBtn: document.getElementById("parseBtn"),
+        parseTip: document.getElementById("parseTip"),
+        totalCount: document.getElementById("totalCount"),
+        uniqueCount: document.getElementById("uniqueCount"),
+        categoryCount: document.getElementById("categoryCount"),
+        searchInput: document.getElementById("searchInput"),
+        sortField: document.getElementById("sortField"),
+        sortOrder: document.getElementById("sortOrder"),
+        groups: document.getElementById("groups")
+      };
+
+      function isValidHttpUrl(raw) {
+        try {
+          const u = new URL(raw);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function cleanupDomain(hostname) {
+        return String(hostname || "").toLowerCase().replace(/^www\./, "");
+      }
+
+      function normalizeTitle(text) {
+        return String(text || "").replace(/\s+/g, " ").trim();
+      }
+
+      function parseMixedText(rawText) {
+        const lines = String(rawText || "").split(/\r?\n/);
+        const result = [];
+        let pendingTitle = null;
+        let totalNonEmpty = 0;
+        let invalidCount = 0;
+
+        for (let i = 0; i < lines.length; i += 1) {
+          const rawLine = lines[i];
+          const trimmed = rawLine.trim();
+          if (!trimmed) {
+            continue;
+          }
+          totalNonEmpty += 1;
+
+          const urlMatch = trimmed.match(/https?:\/\/[^\s]+/i);
+          if (!urlMatch) {
+            if (pendingTitle) {
+              invalidCount += 1;
+            }
+            pendingTitle = trimmed;
+            continue;
+          }
+
+          const rawUrl = urlMatch[0];
+          if (!isValidHttpUrl(rawUrl)) {
+            invalidCount += 1;
+            pendingTitle = null;
+            continue;
+          }
+
+          const inlineTitle = normalizeTitle(trimmed.replace(rawUrl, "").replace(/[\-\|\t]+/g, " "));
+          const title = inlineTitle || pendingTitle || rawUrl;
+          const recordLine = pendingTitle && !inlineTitle ? pendingTitle + " " + trimmed : trimmed;
+          let domain = "";
+          try {
+            domain = cleanupDomain(new URL(rawUrl).hostname);
+          } catch (_) {
+            domain = "";
+          }
+
+          result.push({
+            title,
+            url: rawUrl,
+            domain,
+            rawLine: recordLine
+          });
+
+          pendingTitle = null;
+        }
+
+        if (pendingTitle) {
+          invalidCount += 1;
+        }
+
+        return {
+          items: result,
+          stats: {
+            total: totalNonEmpty,
+            valid: result.length,
+            invalid: invalidCount
+          }
+        };
+      }
+
+      function normalizeUrl(rawUrl) {
+        try {
+          const u = new URL(rawUrl);
+          if (u.protocol !== "http:" && u.protocol !== "https:") {
+            return null;
+          }
+
+          u.protocol = u.protocol.toLowerCase();
+          u.hostname = u.hostname.toLowerCase();
+
+          if ((u.protocol === "http:" && u.port === "80") || (u.protocol === "https:" && u.port === "443")) {
+            u.port = "";
+          }
+
+          if (u.pathname !== "/") {
+            u.pathname = u.pathname.replace(/\/+$/, "");
+            if (!u.pathname) {
+              u.pathname = "/";
+            }
+          }
+
+          const kept = [];
+          u.searchParams.forEach((value, key) => {
+            const lowerKey = key.toLowerCase();
+            if (lowerKey.startsWith("utm_") || TRACKING_PARAM_SET.has(lowerKey)) {
+              return;
+            }
+            kept.push([key, value]);
+          });
+          kept.sort((a, b) => {
+            if (a[0] === b[0]) {
+              return a[1].localeCompare(b[1], "zh-CN");
+            }
+            return a[0].localeCompare(b[0], "zh-CN");
+          });
+
+          u.search = "";
+          for (let i = 0; i < kept.length; i += 1) {
+            u.searchParams.append(kept[i][0], kept[i][1]);
+          }
+
+          u.hash = "";
+          return u.toString();
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function dedupeItems(items) {
+        const map = new Map();
+        let duplicates = 0;
+
+        for (let i = 0; i < items.length; i += 1) {
+          const item = items[i];
+          const normalizedUrl = normalizeUrl(item.url);
+          const fallbackKey = normalizeTitle(item.title).toLowerCase() + "|" + cleanupDomain(item.domain);
+          const key = normalizedUrl || fallbackKey;
+
+          if (map.has(key)) {
+            duplicates += 1;
+            continue;
+          }
+
+          map.set(key, {
+            title: normalizeTitle(item.title),
+            url: item.url,
+            domain: item.domain || (normalizedUrl ? cleanupDomain(new URL(normalizedUrl).hostname) : ""),
+            rawLine: item.rawLine,
+            normalizedUrl: normalizedUrl || "",
+            duplicateCount: 0
+          });
+        }
+
+        return {
+          items: Array.from(map.values()),
+          duplicates
+        };
+      }
+
+      function domainMatch(domain, pattern) {
+        if (!domain || !pattern) {
+          return false;
+        }
+        const d = domain.toLowerCase();
+        const p = pattern.toLowerCase();
+
+        if (p === "docs.*") {
+          return d.startsWith("docs.");
+        }
+
+        if (p.startsWith("*.")) {
+          const root = p.slice(2);
+          return d === root || d.endsWith("." + root);
+        }
+
+        return d === p || d.endsWith("." + p);
+      }
+
+      function classifyItem(item) {
+        const domain = cleanupDomain(item.domain);
+        for (let i = 0; i < DOMAIN_RULES.length; i += 1) {
+          const rule = DOMAIN_RULES[i];
+          for (let j = 0; j < rule.patterns.length; j += 1) {
+            if (domainMatch(domain, rule.patterns[j])) {
+              return rule.category;
+            }
+          }
+        }
+
+        const text = (item.title + " " + item.url).toLowerCase();
+        for (let i = 0; i < KEYWORD_RULES.length; i += 1) {
+          const rule = KEYWORD_RULES[i];
+          for (let j = 0; j < rule.keywords.length; j += 1) {
+            if (text.includes(rule.keywords[j].toLowerCase())) {
+              return rule.category;
+            }
+          }
+        }
+
+        return "未分类";
+      }
+
+      function applyCategory(items) {
+        return items.map((item) => ({
+          title: item.title,
+          url: item.url,
+          domain: item.domain,
+          rawLine: item.rawLine,
+          normalizedUrl: item.normalizedUrl,
+          category: classifyItem(item)
+        }));
+      }
+
+      function escapeHtml(text) {
+        return String(text || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function groupAndSort(items, sortField, sortOrder) {
+        const groups = {};
+        for (let i = 0; i < items.length; i += 1) {
+          const item = items[i];
+          if (!groups[item.category]) {
+            groups[item.category] = [];
+          }
+          groups[item.category].push(item);
+        }
+
+        const categories = Object.keys(groups).sort((a, b) => a.localeCompare(b, "zh-CN"));
+        for (let i = 0; i < categories.length; i += 1) {
+          const cat = categories[i];
+          groups[cat].sort((a, b) => {
+            const av = String(a[sortField] || "").toLowerCase();
+            const bv = String(b[sortField] || "").toLowerCase();
+            const result = av.localeCompare(bv, "zh-CN");
+            return sortOrder === "asc" ? result : -result;
+          });
+        }
+
+        return { groups, categories };
+      }
+
+      function getFilteredItems() {
+        const keyword = state.search.trim().toLowerCase();
+        if (!keyword) {
+          return state.items.slice();
+        }
+        return state.items.filter((item) => {
+          const hay = (item.title + " " + item.url + " " + item.domain).toLowerCase();
+          return hay.includes(keyword);
+        });
+      }
+
+      function renderStats() {
+        els.totalCount.textContent = String(state.stats.total);
+        els.uniqueCount.textContent = String(state.items.length);
+        els.categoryCount.textContent = String(state.stats.categories);
+      }
+
+      function renderTip() {
+        const msg = "解析完成：有效 " + state.stats.valid + "，无效 " + state.stats.invalid + "，去重 " + state.stats.duplicates + "。";
+        els.parseTip.textContent = msg;
+      }
+
+      function renderGroups() {
+        const filtered = getFilteredItems();
+        const grouped = groupAndSort(filtered, state.sortField, state.sortOrder);
+        const categories = grouped.categories;
+        const groups = grouped.groups;
+
+        if (!categories.length) {
+          els.groups.innerHTML = '<section class="card muted">暂无可展示数据，请先输入文本并点击“解析并生成”。</section>';
+          return;
+        }
+
+        let html = "";
+        for (let i = 0; i < categories.length; i += 1) {
+          const cat = categories[i];
+          const list = groups[cat];
+          const isCollapsed = state.collapsed.has(cat);
+          html += '<section class="group">';
+          html += '<button class="group-header" data-category="' + escapeHtml(cat) + '" type="button">';
+          html += '<span>' + escapeHtml(cat) + "</span>";
+          html += '<span class="count">' + list.length + " 条</span>";
+          html += "</button>";
+          if (!isCollapsed) {
+            html += '<ol class="group-list">';
+            for (let j = 0; j < list.length; j += 1) {
+              const item = list[j];
+              const safeTitle = escapeHtml(item.title || item.url);
+              const safeUrl = escapeHtml(item.url);
+              const safeDomain = escapeHtml(item.domain);
+              html += '<li><a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + safeTitle + "</a>";
+              html += '<span class="domain">(' + safeDomain + ")</span></li>";
+            }
+            html += "</ol>";
+          }
+          html += "</section>";
+        }
+
+        els.groups.innerHTML = html;
+
+        const headers = els.groups.querySelectorAll(".group-header");
+        for (let i = 0; i < headers.length; i += 1) {
+          headers[i].addEventListener("click", function (event) {
+            const cat = event.currentTarget.getAttribute("data-category");
+            if (!cat) {
+              return;
+            }
+            if (state.collapsed.has(cat)) {
+              state.collapsed.delete(cat);
+            } else {
+              state.collapsed.add(cat);
+            }
+            renderGroups();
+          });
+        }
+      }
+
+      function runPipeline() {
+        const parsed = parseMixedText(els.inputText.value);
+        const deduped = dedupeItems(parsed.items);
+        const categorized = applyCategory(deduped.items);
+        const categorySize = new Set(categorized.map((item) => item.category)).size;
+
+        state.items = categorized;
+        state.stats = {
+          total: parsed.stats.total,
+          valid: parsed.stats.valid,
+          invalid: parsed.stats.invalid,
+          duplicates: deduped.duplicates,
+          categories: categorySize
+        };
+        state.collapsed = new Set();
+
+        renderStats();
+        renderTip();
+        renderGroups();
+      }
+
+      function bindEvents() {
+        els.parseBtn.addEventListener("click", runPipeline);
+
+        els.searchInput.addEventListener("input", function (event) {
+          state.search = event.target.value || "";
+          renderGroups();
+        });
+
+        els.sortField.addEventListener("change", function (event) {
+          state.sortField = event.target.value || "title";
+          renderGroups();
+        });
+
+        els.sortOrder.addEventListener("change", function (event) {
+          state.sortOrder = event.target.value || "asc";
+          renderGroups();
+        });
+      }
+
+      bindEvents();
+      renderStats();
+      renderGroups();
+    })();
+  </script>
+</body>
+</html>
